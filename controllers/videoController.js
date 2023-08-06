@@ -24,7 +24,8 @@ try {
 }
 
 Grid.mongo = mongoose.mongo;
-const gfs = Grid(conn.db);
+const db = conn.connection; // Assign the connection object to the db variable
+const gfs = Grid(db, mongoose.mongo); // Create the Grid instance with the db object
 
 // Multer storage setup
 const storage = multer.memoryStorage();
