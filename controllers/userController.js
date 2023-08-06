@@ -4,7 +4,7 @@ import generateToken from '../utils/generateToken.js';
 import nodemailer from 'nodemailer';
 import Subscription from '../models/subscriptionModel.js';
 import axios from 'axios'
-import redis from "redis"
+import Redis from 'ioredis'; // Import the Redis package
 import crypto from 'crypto';
 const redisclient = new Redis({
   url: 'https://emerging-lynx-45090.upstash.io',
