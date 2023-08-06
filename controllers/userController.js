@@ -6,11 +6,11 @@ import Subscription from '../models/subscriptionModel.js';
 import axios from 'axios'
 import redis from "redis"
 import crypto from 'crypto';
+const redisclient = new Redis({
+  url: 'https://emerging-lynx-45090.upstash.io',
+  token: 'AbAiASQgOWU4NGQ5ZmYtMTNmOC00YThlLTg0MTUtMWY2MmIxMWY0YzMzMWEyNDQxOWQ5MDJkNDlhYWJmZTBjYzdkZjc3OTc1Zjk=',
+})
 
-const redisclient = redis.createClient({ // Corrected variable name to redisclient
-  host: '127.0.0.1',
-  port: 6379,
-});
 redisclient.connect()
 redisclient.on('connect', () => {
   console.log('Connected to Redis server');
