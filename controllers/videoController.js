@@ -12,10 +12,11 @@ ffmpeg.setFfprobePath('C:/Users/Administrator/Music/ffmpeg/bin/ffprobe.exe');
 // Import your Mongoose Video model and other necessary models here
 import Video from '../models/Video.js';
 import Subscription from '../models/subscriptionModel.js';
+let conn; // Declare the variable outside the try block
 
 // Create a new GridFS bucket
 try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`MongoDB Connected`);
 } catch (error) {
     console.error(`Error: ${error.message}`);
