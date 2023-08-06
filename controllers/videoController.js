@@ -14,7 +14,14 @@ import Video from '../models/Video.js';
 import Subscription from '../models/subscriptionModel.js';
 
 // Create a new GridFS bucket
-const conn = mongoose.connection;
+try {
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    console.log(`MongoDB Connected`);
+} catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+}
+
 Grid.mongo = mongoose.mongo;
 const gfs = Grid(conn.db);
 
@@ -26,47 +33,47 @@ const upload = multer({ storage }).single('file');
 
 // Update the uploadFiles function to save the video to GridFS and the database
 const uploadFiles = asyncHandler(async (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.json({ success: false, err });
-    }
+    upload(req, res, async (err) => {
+        if (err) {
+            return res.json({ success: false, err });
+        }
 
-    // Create a readable stream from the buffer of the uploaded file
-    const readableStream = Readable.from(req.file.buffer);
+        // Create a readable stream from the buffer of the uploaded file
+        const readableStream = Readable.from(req.file.buffer);
 
-    // Create the write stream to save the file to GridFS
-    const writeStream = gfs.createWriteStream({
-      filename: `${Date.now()}_${req.file.originalname}`,
-    });
-
-    // Pipe the readable stream to the write stream to save the file in GridFS
-    readableStream.pipe(writeStream);
-
-    // When the file is fully stored in GridFS, save the video data in the database
-    writeStream.on('close', async (file) => {
-      const video = new Video({
-        user: req.user, // Replace this with the user object or user ID associated with the video
-        title: req.body.title,
-        description: req.body.description,
-        privacy: req.body.privacy,
-        filePath: file.filename,
-        category: req.body.category,
-        duration: req.body.duration,
-        thumbnail: req.body.thumbnail,
-      });
-
-      try {
-        await video.save();
-        return res.json({
-          success: true,
-          filePath: file.filename,
-          fileName: file.filename,
+        // Create the write stream to save the file to GridFS
+        const writeStream = gfs.createWriteStream({
+            filename: `${Date.now()}_${req.file.originalname}`,
         });
-      } catch (error) {
-        return res.status(400).json({ success: false, error });
-      }
+
+        // Pipe the readable stream to the write stream to save the file in GridFS
+        readableStream.pipe(writeStream);
+
+        // When the file is fully stored in GridFS, save the video data in the database
+        writeStream.on('close', async (file) => {
+            const video = new Video({
+                user: req.user, // Replace this with the user object or user ID associated with the video
+                title: req.body.title,
+                description: req.body.description,
+                privacy: req.body.privacy,
+                filePath: file.filename,
+                category: req.body.category,
+                duration: req.body.duration,
+                thumbnail: req.body.thumbnail,
+            });
+
+            try {
+                await video.save();
+                return res.json({
+                    success: true,
+                    filePath: file.filename,
+                    fileName: file.filename,
+                });
+            } catch (error) {
+                return res.status(400).json({ success: false, error });
+            }
+        });
     });
-  });
 });
 
 
