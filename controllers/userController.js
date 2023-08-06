@@ -10,7 +10,6 @@ import crypto from 'crypto';
 const redisclient = new Redis('redis://red-cj7u3hs5kgrc73ch6ck0:6379');
 
 
-redisclient.connect()
 redisclient.on('connect', () => {
   console.log('Connected to Redis server');
 });
