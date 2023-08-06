@@ -1,44 +1,74 @@
 import asyncHandler from 'express-async-handler';
 import multer from 'multer';
+import path from 'path';
+import mongoose from 'mongoose';
+import Grid from 'gridfs-stream';
+import { Readable } from 'stream';
+
 import ffmpeg from 'fluent-ffmpeg';
 ffmpeg.setFfmpegPath('C:/Users/Administrator/Music/ffmpeg/bin/ffmpeg.exe');
 ffmpeg.setFfprobePath('C:/Users/Administrator/Music/ffmpeg/bin/ffprobe.exe');
-import Video from '../models/Video.js'
+
+// Import your Mongoose Video model and other necessary models here
+import Video from '../models/Video.js';
 import Subscription from '../models/subscriptionModel.js';
 
-var storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}_${file.originalname}`);
-    },
-    fileFilter: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        if (ext !== '.mp4') {
-            return cb(res.status(400).end('Only MP4 is supported'), false);
-        }
-        cb(null, true);
-    },
+// Create a new GridFS bucket
+const conn = mongoose.connection;
+Grid.mongo = mongoose.mongo;
+const gfs = Grid(conn.db);
+
+// Multer storage setup
+const storage = multer.memoryStorage();
+const upload = multer({ storage }).single('file');
+
+// ...
+
+// Update the uploadFiles function to save the video to GridFS and the database
+const uploadFiles = asyncHandler(async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.json({ success: false, err });
+    }
+
+    // Create a readable stream from the buffer of the uploaded file
+    const readableStream = Readable.from(req.file.buffer);
+
+    // Create the write stream to save the file to GridFS
+    const writeStream = gfs.createWriteStream({
+      filename: `${Date.now()}_${req.file.originalname}`,
+    });
+
+    // Pipe the readable stream to the write stream to save the file in GridFS
+    readableStream.pipe(writeStream);
+
+    // When the file is fully stored in GridFS, save the video data in the database
+    writeStream.on('close', async (file) => {
+      const video = new Video({
+        user: req.user, // Replace this with the user object or user ID associated with the video
+        title: req.body.title,
+        description: req.body.description,
+        privacy: req.body.privacy,
+        filePath: file.filename,
+        category: req.body.category,
+        duration: req.body.duration,
+        thumbnail: req.body.thumbnail,
+      });
+
+      try {
+        await video.save();
+        return res.json({
+          success: true,
+          filePath: file.filename,
+          fileName: file.filename,
+        });
+      } catch (error) {
+        return res.status(400).json({ success: false, error });
+      }
+    });
+  });
 });
 
-
-var upload = multer({ storage: storage }).single('file');
-
-
-  
-const uploadFiles = asyncHandler(async (req, res) => {
-    upload(req, res, (err) => {
-        if (err) {
-            return res.json({ success: false, err });
-        }
-        return res.json({
-            success: true,
-            filePath: res.req.file.path,
-            fileName: res.req.file.filename,
-        });
-    });
-})
 
 const tumbnailsOfVideo = asyncHandler(async (req, res) => {
     let thumbsFilePath = '';
